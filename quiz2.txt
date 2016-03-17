@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <string.h>
+#include "mpi.h"
+
+int main(int argc , char * argv[])
+{
+	int my_rank;		
+	int p;			
+	int source = 0;		
+	int des;		
+	int tag = 0;	
+	char *word, *totalArray, *subArray;			
+	int numOfElements, i, size;
+	
+	MPI_Init( &argc , &argv );
+
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
+	MPI_Comm_size(MPI_COMM_WORLD, &p);
+	
+	if(my_rank == 0)
+	{
+		printf("Enter the word size : ");
+		scanf("%d", &size);
+		
+		word = malloc(size);
+		
+		printf("Enter the word: ");
+		scanf("%s", word);
+		
+		numOfElements = size / p;
+		
+		totalArray = malloc(size);
+	}
+	
+	MPI_Bcast(&numOfElements, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	
+	subArray = malloc(numOfElements);
+	
+	MPI_Scatter(word, numOfElements, MPI_CHAR, subArray, numOfElements, MPI_CHAR, source, MPI_COMM_WORLD);
+		
+	for(i = 0; i < numOfElements; i++)
+		subArray[i] = tolower(subArray[i]);
+	
+	printf("process : %d size = %d the word: %s\n",my_rank, sizeof(subArray), subArray);
+	
+	MPI_Gather (subArray, numOfElements, MPI_CHAR, totalArray, numOfElements, MPI_CHAR, source, MPI_COMM_WORLD);
+
+	if(my_rank == 0){
+	
+		for(i = p * numOfElements;i < size; i++)
+			totalArray[i] = tolower(word[i]);
+		
+		printf("\nlower case word = %s\n", totalArray);
+	}
+	
+	MPI_Finalize();
+	return 0;
+}
